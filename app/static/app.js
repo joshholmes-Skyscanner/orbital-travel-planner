@@ -60,11 +60,179 @@ function renderResults(data) {
       <div class="body">
         <ul>${legsHtml}</ul>
         ${expl ? `<details><summary>Explanation</summary><pre>${escapeHtml(expl)}</pre></details>` : ""}
+        <button class="book-btn" onclick="bookPlan(${escapeHtml(JSON.stringify(p))})">Book This Plan</button>
       </div>
     `;
 
     el.appendChild(card);
   }
+}
+
+// Booking flow functions
+async function bookPlan(plan) {
+  setStatus("Creating booking...");
+
+  try {
+    const resp = await fetch("/api/bookings", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ plan }),
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      setStatus(`Booking failed: ${data?.detail || "unknown error"}`);
+      return;
+    }
+
+    setStatus(`Booking created: ${data.id}`);
+    showBookingDetails(data);
+  } catch (e) {
+    setStatus(`Booking request failed: ${e?.message || e}`);
+  }
+}
+
+function showBookingDetails(booking) {
+  const modal = document.createElement("div");
+  modal.className = "modal";
+  modal.innerHTML = `
+    <div class="modal-content">
+      <h3>Booking Created</h3>
+      <p><b>Booking ID:</b> ${escapeHtml(booking.id)}</p>
+      <p><b>Status:</b> ${escapeHtml(booking.status)}</p>
+      <p><b>Price:</b> £${booking.total_price_gbp}</p>
+      <p><b>Hold expires:</b> ${new Date(booking.hold_expires_at).toLocaleString()}</p>
+
+      <h4>Passenger Information</h4>
+      <input type="text" id="passenger_name" placeholder="Full Name" required>
+      <input type="email" id="passenger_email" placeholder="Email" required>
+      <input type="text" id="passenger_passport" placeholder="Passport Number (optional)">
+
+      <div class="modal-actions">
+        <button onclick="confirmBooking('${booking.id}')">Confirm & Pay</button>
+        <button onclick="closeModal()">Cancel</button>
+        <button onclick="viewBooking('${booking.id}')">View Details</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+async function confirmBooking(bookingId) {
+  const name = document.getElementById("passenger_name").value;
+  const email = document.getElementById("passenger_email").value;
+  const passport = document.getElementById("passenger_passport").value;
+
+  if (!name || !email) {
+    alert("Please provide name and email");
+    return;
+  }
+
+  setStatus("Confirming booking...");
+
+  try {
+    const resp = await fetch(`/api/bookings/${bookingId}/confirm`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        passenger_data: {
+          full_name: name,
+          email: email,
+          passport_number: passport || null,
+        }
+      }),
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      setStatus(`Confirmation failed: ${data?.detail || "unknown error"}`);
+      return;
+    }
+
+    setStatus(`Booking confirmed! Payment ref: ${data.payment_reference}`);
+    closeModal();
+    showSuccessMessage(data);
+  } catch (e) {
+    setStatus(`Confirmation request failed: ${e?.message || e}`);
+  }
+}
+
+async function viewBooking(bookingId) {
+  setStatus("Loading booking details...");
+
+  try {
+    const resp = await fetch(`/api/bookings/${bookingId}`);
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      setStatus(`Failed to load booking: ${data?.detail || "unknown error"}`);
+      return;
+    }
+
+    displayBookingDetails(data);
+  } catch (e) {
+    setStatus(`Request failed: ${e?.message || e}`);
+  }
+}
+
+function displayBookingDetails(booking) {
+  closeModal();
+
+  const modal = document.createElement("div");
+  modal.className = "modal";
+
+  const auditHtml = booking.audit_trail?.map(log =>
+    `<li><b>${log.action}</b> at ${new Date(log.timestamp).toLocaleString()}</li>`
+  ).join("") || "";
+
+  modal.innerHTML = `
+    <div class="modal-content">
+      <h3>Booking Details</h3>
+      <p><b>ID:</b> ${escapeHtml(booking.id)}</p>
+      <p><b>Status:</b> ${escapeHtml(booking.status)}</p>
+      <p><b>Price:</b> £${booking.total_price_gbp}</p>
+      ${booking.payment_reference ? `<p><b>Payment Ref:</b> ${escapeHtml(booking.payment_reference)}</p>` : ""}
+
+      ${booking.passenger_data ? `
+        <h4>Passenger</h4>
+        <p><b>Name:</b> ${escapeHtml(booking.passenger_data.full_name)}</p>
+        <p><b>Email:</b> ${escapeHtml(booking.passenger_data.email)}</p>
+      ` : ""}
+
+      <h4>Audit Trail</h4>
+      <ul class="audit-trail">${auditHtml}</ul>
+
+      <div class="modal-actions">
+        <button onclick="closeModal()">Close</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function showSuccessMessage(booking) {
+  const modal = document.createElement("div");
+  modal.className = "modal";
+  modal.innerHTML = `
+    <div class="modal-content success">
+      <h3>✓ Booking Confirmed!</h3>
+      <p><b>Booking ID:</b> ${escapeHtml(booking.id)}</p>
+      <p><b>Payment Reference:</b> ${escapeHtml(booking.payment_reference)}</p>
+      <p><b>Total Paid:</b> £${booking.total_price_gbp}</p>
+      <p>Confirmation email sent to ${escapeHtml(booking.passenger_data?.email || "")}</p>
+      <div class="modal-actions">
+        <button onclick="closeModal()">Done</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function closeModal() {
+  const modals = document.querySelectorAll(".modal");
+  modals.forEach(m => m.remove());
 }
 
 function escapeHtml(s) {

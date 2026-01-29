@@ -1,0 +1,14 @@
+2026-01-29 14:32:00,570 [INFO] app.middleware: REQUEST 6f377475-026a-4c3e-81bf-a51239f17421: GET / from 127.0.0.1
+2026-01-29 14:32:00,583 [INFO] app.middleware: RESPONSE 6f377475-026a-4c3e-81bf-a51239f17421: 200 [13ms]
+2026-01-29 14:32:00,590 [INFO] app.middleware: REQUEST 91e7181a-6f0f-4ac3-b3d8-e61d406226b0: GET /static/styles.css from 127.0.0.1
+2026-01-29 14:32:00,591 [INFO] app.middleware: REQUEST e51c4987-b405-45a7-a41a-e8ecfed9a167: GET /static/app.js from 127.0.0.1
+2026-01-29 14:32:00,592 [INFO] app.middleware: RESPONSE e51c4987-b405-45a7-a41a-e8ecfed9a167: 200 [0ms]
+2026-01-29 14:32:00,592 [INFO] app.middleware: RESPONSE 91e7181a-6f0f-4ac3-b3d8-e61d406226b0: 200 [1ms]
+2026-01-29 14:32:05,537 [INFO] app.middleware: REQUEST 388ea055-4121-4bf9-adaa-8f93e18ad493: POST /api/search from 127.0.0.1
+2026-01-29 14:32:05,537 [INFO] app.middleware: REQUEST BODY 388ea055-4121-4bf9-adaa-8f93e18ad493: {"origin":"LON","destination":"NYC","depart_after":"2026-02-01T08:00:00Z","arrive_before":"2026-02-02T08:00:00Z","max_layovers":2,"optimize_for":"balanced"}
+2026-01-29 14:32:05,681 [INFO] httpx: HTTP Request: POST http://localhost:8765/tools/routes.get "HTTP/1.1 200 OK"
+2026-01-29 14:32:05,682 [INFO] app.middleware: RESPONSE 388ea055-4121-4bf9-adaa-8f93e18ad493: 200 [145ms]
+2026-01-29 14:32:16,896 [INFO] app.middleware: REQUEST e9eef8ed-9411-49d8-a27f-d0e6a7c21f27: POST /api/search from 127.0.0.1
+2026-01-29 14:32:16,896 [INFO] app.middleware: REQUEST BODY e9eef8ed-9411-49d8-a27f-d0e6a7c21f27: {"origin":"LON","destination":"NYC","depart_after":"2026-02-01T08:00:00Z","arrive_before":"2026-02-02T08:00:00Z","max_layovers":2,"optimize_for":"cheapest"}
+2026-01-29 14:32:16,920 [INFO] httpx: HTTP Request: POST http://localhost:8765/tools/routes.get "HTTP/1.1 200 OK"
+2026-01-29 14:32:16,921 [INFO] app.middleware: RESPONSE e9eef8ed-9411-49d8-a27f-d0e6a7c21f27: 200 [25ms]
