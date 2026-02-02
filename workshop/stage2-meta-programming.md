@@ -1,35 +1,43 @@
-# Stage 2: Meta-Programming & Self-Validation
+# Stage 2: Self-Validating Skills
 
-**Time:** 11:00–12:00 (60 minutes)
-**Goal:** Build a skill that orchestrates multiple agents and validates its own work using external tools.
+**Time:** 60 minutes
+**Goal:** Build skills that validate their own work and automatically fix errors
 
 ## Learning Objectives
 
-By the end of this stage, you'll be able to:
-- Create skills that coordinate multiple agents sequentially
-- Pass structured data between agents
-- Build self-validating loops that fix their own errors
-- Create a custom MCP server for validation
-- Understand fix-verify-repeat patterns
+- Build a skill that discovers and validates API endpoints
+- Create an MCP server for external validation
+- Implement self-correcting code loops
+- Understand when skills benefit from spawning agents
 
-## Part A: Multi-Agent Skill (30 minutes)
+## Overview
+
+You'll build two powerful skills:
+1. **`/validate-api`** - Discovers all API endpoints and generates validation strategies
+2. **`/implement-verified`** - Implements features with automatic validation and fixes
+
+These skills use agents internally for clean context and efficiency, but that's an implementation detail.
+
+## Part A: API Validation Skill
+
+**Time:** 30 minutes
 
 ### What You're Building
 
-A `/validate-api` skill that orchestrates three agents to analyze and validate API endpoints:
-1. **Explore agent**: Finds all API endpoints
-2. **Plan agent**: Designs a validation strategy
-3. **General-purpose agent**: Generates test cases
+A skill that comprehensively analyzes your API:
+- Discovers all endpoints automatically
+- Designs a validation strategy
+- Generates concrete test cases
+- Produces actionable reports
 
-### Step 1: Create the Skill Directory
+**Why agents help here:** Each phase (discover, plan, execute) needs fresh context. Spawning agents keeps each step focused and uses cheaper models for discrete tasks.
+
+### 1. Create the Skill
 
 ```bash
-cd ~/.claude/skills
-mkdir validate-api
-cd validate-api
+mkdir -p ~/.claude/skills/validate-api
+cd ~/.claude/skills/validate-api
 ```
-
-### Step 2: Create the Skill Manifest
 
 Create `skill.json`:
 
@@ -37,121 +45,138 @@ Create `skill.json`:
 {
   "name": "validate-api",
   "version": "1.0.0",
-  "description": "Orchestrates multiple agents to find, analyze, and validate API endpoints",
+  "description": "Discovers API endpoints and generates comprehensive validation strategy",
   "author": "Your Name",
   "invocation": "/validate-api"
 }
 ```
 
-### Step 3: Create the Orchestration Prompt
+### 2. Write the Skill Logic
 
 Create `prompt.txt`:
 
-```txt
-You are an API validation orchestrator. Your job is to coordinate multiple agents to comprehensively analyze API endpoints.
+```text
+You are an API validation specialist. Discover all API endpoints and create a comprehensive validation strategy.
 
-IMPORTANT: Follow these steps SEQUENTIALLY. Each agent must complete before the next starts.
+Your job is to coordinate the analysis, but use agents for discrete tasks to keep context clean and costs low.
 
-Step 1: EXPLORE PHASE
-- Spawn an Explore agent with this task: "Find all API endpoints in the codebase. Look for:
-  - Flask/FastAPI route decorators (@app.route, @router.get, etc.)
-  - Endpoint paths and HTTP methods
-  - Request/response models
-  Write findings to api-endpoints.json as a structured list"
+PHASE 1: DISCOVERY
+Spawn an Explore agent to find all API endpoints:
+"Find all API endpoints in the codebase. Look for:
+- Flask/FastAPI route decorators (@app.route, @router.get, etc.)
+- Endpoint paths and HTTP methods
+- Request/response models
+Write findings to api-endpoints.json as a structured list."
 
-Step 2: PLAN PHASE (Wait for Step 1 to complete)
-- Read api-endpoints.json to see what was found
-- Spawn a Plan agent with this task: "Given the API endpoints in api-endpoints.json, design a validation strategy:
-  - What should be tested for each endpoint?
-  - What are potential security issues?
-  - What edge cases should be checked?
-  Write the strategy to validation-plan.json"
+Wait for completion, then read api-endpoints.json.
 
-Step 3: EXECUTE PHASE (Wait for Step 2 to complete)
-- Read validation-plan.json
-- Spawn a general-purpose agent with this task: "Using the validation plan in validation-plan.json, generate concrete test cases:
-  - Create sample requests for each endpoint
-  - Include valid, invalid, and edge cases
-  - Specify expected responses
-  Write test cases to test-cases.json"
+PHASE 2: STRATEGY
+Spawn a Plan agent to design validation approach:
+"Given the API endpoints in api-endpoints.json, design a validation strategy:
+- What should be tested for each endpoint?
+- What are potential security issues?
+- What edge cases should be checked?
+Write the strategy to validation-plan.json."
 
-Step 4: REPORT PHASE (Wait for Step 3 to complete)
-- Read all three JSON files
-- Create a comprehensive markdown report: api-validation-report.md
-- Include: endpoints found, validation strategy, test cases, and recommendations
+Wait for completion, then read validation-plan.json.
 
-CRITICAL RULES:
-- Agents must run SEQUENTIALLY, not in parallel
-- Each agent writes to a specific JSON file
+PHASE 3: TEST GENERATION
+Spawn a general-purpose agent to create test cases:
+"Using the validation plan in validation-plan.json, generate concrete test cases:
+- Create sample requests for each endpoint
+- Include valid, invalid, and edge cases
+- Specify expected responses
+Write test cases to test-cases.json."
+
+Wait for completion, then read test-cases.json.
+
+PHASE 4: REPORT
+Read all JSON files and create api-validation-report.md with:
+- Endpoints discovered
+- Validation strategy summary
+- Test cases overview
+- Key recommendations
+
+WHY AGENTS:
+- Each phase needs clean context focused on one task
+- Explore agent is optimized for codebase searches
+- Plan agent uses cheaper model for strategy work
+- Agents prevent context bloat in the main skill
+
+RULES:
+- Agents run sequentially (each needs previous output)
+- All communication via JSON files
 - Verify each file exists before proceeding
-- If an agent fails, report the error and stop
-- Use structured JSON for agent communication
 ```
 
-### Step 4: Test the Skill
-
-In Claude Code:
+### 3. Test the Skill
 
 ```
 /validate-api
 ```
 
-Watch the orchestration happen:
-1. Explore agent discovers endpoints
-2. Plan agent designs validation
-3. General-purpose agent generates tests
-4. Final report is created
+The skill will:
+1. Discover all API endpoints in your codebase
+2. Design a validation strategy
+3. Generate specific test cases
+4. Produce a comprehensive report
 
-### Step 5: Examine the Outputs
-
-Check the generated files:
+### 4. Review the Output
 
 ```bash
-cat api-endpoints.json
-cat validation-plan.json
-cat test-cases.json
-cat api-validation-report.md
+cat api-endpoints.json        # Discovered endpoints
+cat validation-plan.json      # Validation strategy
+cat test-cases.json           # Generated test cases
+cat api-validation-report.md  # Final report
 ```
 
-### Step 6: Verify Sequential Execution
+### What Just Happened?
 
-Notice how each agent waits for the previous one. This is because:
-- Agent 2 needs the output from Agent 1
-- Agent 3 needs the output from Agent 2
-- Dependencies enforce sequential execution
+The skill used three agents internally, but from your perspective you just ran `/validate-api` and got a comprehensive analysis. The agents were an implementation detail that:
+- Kept each analysis phase focused
+- Used cheaper models for discovery and planning
+- Prevented context bloat
+- Made the skill faster and more cost-effective
 
-### Success Criteria ✅
+### Verification
 
-- [ ] `/validate-api` skill exists and can be invoked
-- [ ] Three agents spawn sequentially (not in parallel)
-- [ ] Each agent writes to its designated JSON file
-- [ ] Final report includes all findings
-- [ ] You understand how to pass data between agents
+- [ ] `/validate-api` skill works end-to-end
+- [ ] Report includes all discovered endpoints
+- [ ] Validation strategy is actionable
+- [ ] Test cases are specific and useful
+- [ ] Understand why agents help here (not for orchestration, but for efficiency)
 
 ### Troubleshooting
 
-**Problem:** Agents run in parallel instead of sequentially
-- **Solution:** Ensure the prompt explicitly says to wait
-- Each step should read the previous step's output file
+**Skill times out:**
+- Simplify each agent's task
+- Ensure JSON files are being written correctly
 
-**Problem:** Agent can't find previous agent's output
-- **Solution:** Check file paths are absolute or relative to current dir
-- Verify files were actually created
+**Missing endpoints:**
+- Check that Explore agent searched all common route locations
+- Verify framework decorators are recognized
 
-**Problem:** Skill times out
-- **Solution:** Simplify agent tasks
-- Break into smaller steps if needed
+**Agents don't wait for previous output:**
+- Ensure prompt explicitly reads previous JSON file before spawning next agent
 
-## Part B: Self-Validating Loop (30 minutes)
+## Part B: Self-Correcting Implementation Skill
+
+**Time:** 30 minutes
 
 ### What You're Building
 
-1. An MCP server that validates HTTP endpoints
-2. A `/implement-verified` skill that implements features and fixes itself if validation fails
+A skill that implements features and automatically validates them:
+- Takes a feature description
+- Implements the code
+- Validates it actually works
+- Fixes errors automatically (up to 3 attempts)
+- Reports success or detailed diagnostics
 
-### Step 1: Create the Validation MCP Server
+**Why MCP server:** We need external validation (real HTTP calls) that Claude can't do natively.
 
-Create `~/.claude/mcp-servers/api-validator/`:
+### 1. Create the Validation MCP Server
+
+This provides the external validation capability your skill needs.
 
 ```bash
 mkdir -p ~/.claude/mcp-servers/api-validator
@@ -164,46 +189,35 @@ Create `server.py`:
 #!/usr/bin/env python3
 """
 API Validation MCP Server
-Provides tools to validate HTTP endpoints
+Provides external HTTP validation for skills
 """
 
 import json
 import sys
-from typing import Any
+from typing import Any, Dict
 import httpx
 from jsonschema import validate, ValidationError
 
-def validate_endpoint(url: str, expected_status: int = 200, expected_schema: dict = None) -> dict:
-    """
-    Validates an HTTP endpoint
 
-    Args:
-        url: The endpoint URL to validate
-        expected_status: Expected HTTP status code
-        expected_schema: Optional JSON schema to validate response against
-
-    Returns:
-        Dict with validation results
-    """
+def validate_endpoint(url: str, expected_status: int = 200,
+                     expected_schema: Dict = None) -> Dict[str, Any]:
+    """Validates an HTTP endpoint against expected behavior"""
     try:
-        # Make the request
         response = httpx.get(url, timeout=5.0)
 
         result = {
             "url": url,
             "status_code": response.status_code,
             "status_match": response.status_code == expected_status,
-            "response_time_ms": response.elapsed.total_seconds() * 1000,
+            "response_time_ms": round(response.elapsed.total_seconds() * 1000, 2),
             "success": True
         }
 
-        # Check status code
         if response.status_code != expected_status:
             result["success"] = False
-            result["error"] = f"Status mismatch: expected {expected_status}, got {response.status_code}"
+            result["error"] = f"Expected {expected_status}, got {response.status_code}"
             return result
 
-        # Validate schema if provided
         if expected_schema:
             try:
                 response_json = response.json()
@@ -214,86 +228,51 @@ def validate_endpoint(url: str, expected_status: int = 200, expected_schema: dic
                 result["success"] = False
                 result["schema_valid"] = False
                 result["error"] = f"Schema validation failed: {e.message}"
-                result["response_body"] = response.text[:500]  # Truncate
+                result["response_body"] = response.text[:500]
         else:
             result["response_body"] = response.text[:500]
 
         return result
 
     except Exception as e:
-        return {
-            "url": url,
-            "success": False,
-            "error": str(e)
-        }
+        return {"url": url, "success": False, "error": str(e)}
 
-# MCP Protocol Implementation
-def handle_initialize(params: dict) -> dict:
-    """Handle initialize request"""
+
+# MCP Protocol handlers
+def handle_initialize(params: Dict) -> Dict:
     return {
         "protocolVersion": "0.1.0",
-        "serverInfo": {
-            "name": "api-validator",
-            "version": "1.0.0"
-        },
-        "capabilities": {
-            "tools": {}
-        }
+        "serverInfo": {"name": "api-validator", "version": "1.0.0"},
+        "capabilities": {"tools": {}}
     }
 
-def handle_tools_list() -> dict:
-    """Return available tools"""
+
+def handle_tools_list() -> Dict:
     return {
-        "tools": [
-            {
-                "name": "validate_endpoint",
-                "description": "Validates an HTTP endpoint against expected status and schema",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "url": {
-                            "type": "string",
-                            "description": "The endpoint URL to validate"
-                        },
-                        "expected_status": {
-                            "type": "integer",
-                            "description": "Expected HTTP status code",
-                            "default": 200
-                        },
-                        "expected_schema": {
-                            "type": "object",
-                            "description": "JSON Schema to validate response against",
-                            "default": None
-                        }
-                    },
-                    "required": ["url"]
-                }
+        "tools": [{
+            "name": "validate_endpoint",
+            "description": "Validates HTTP endpoint against expected status and schema",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "Endpoint URL to validate"},
+                    "expected_status": {"type": "integer", "default": 200},
+                    "expected_schema": {"type": "object", "description": "JSON Schema"}
+                },
+                "required": ["url"]
             }
-        ]
+        }]
     }
 
-def handle_tools_call(tool_name: str, arguments: dict) -> dict:
-    """Execute tool call"""
+
+def handle_tools_call(tool_name: str, arguments: Dict) -> Dict:
     if tool_name == "validate_endpoint":
         result = validate_endpoint(**arguments)
-        return {
-            "content": [
-                {
-                    "type": "text",
-                    "text": json.dumps(result, indent=2)
-                }
-            ]
-        }
-    else:
-        return {
-            "error": {
-                "code": -32601,
-                "message": f"Unknown tool: {tool_name}"
-            }
-        }
+        return {"content": [{"type": "text", "text": json.dumps(result, indent=2)}]}
+    return {"error": {"code": -32601, "message": f"Unknown tool: {tool_name}"}}
+
 
 def main():
-    """Main MCP server loop"""
     for line in sys.stdin:
         try:
             request = json.loads(line)
@@ -306,35 +285,16 @@ def main():
             elif method == "tools/list":
                 response = handle_tools_list()
             elif method == "tools/call":
-                tool_name = params.get("name")
-                arguments = params.get("arguments", {})
-                response = handle_tools_call(tool_name, arguments)
+                response = handle_tools_call(params.get("name"), params.get("arguments", {}))
             else:
-                response = {
-                    "error": {
-                        "code": -32601,
-                        "message": f"Unknown method: {method}"
-                    }
-                }
+                response = {"error": {"code": -32601, "message": f"Unknown method: {method}"}}
 
-            result = {
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "result": response
-            }
-
-            print(json.dumps(result), flush=True)
+            print(json.dumps({"jsonrpc": "2.0", "id": request_id, "result": response}), flush=True)
 
         except Exception as e:
-            error_response = {
-                "jsonrpc": "2.0",
-                "id": request.get("id") if 'request' in locals() else None,
-                "error": {
-                    "code": -32603,
-                    "message": str(e)
-                }
-            }
-            print(json.dumps(error_response), flush=True)
+            error = {"jsonrpc": "2.0", "id": request.get("id"), "error": {"code": -32603, "message": str(e)}}
+            print(json.dumps(error), flush=True)
+
 
 if __name__ == "__main__":
     main()
@@ -342,26 +302,19 @@ if __name__ == "__main__":
 
 Create `requirements.txt`:
 
-```txt
+```text
 httpx>=0.27.0
 jsonschema>=4.21.0
 ```
 
-Install dependencies:
+Install and configure:
 
 ```bash
 pip install -r requirements.txt
-```
-
-Make it executable:
-
-```bash
 chmod +x server.py
 ```
 
-### Step 2: Add MCP Server to Claude Config
-
-Edit `~/.claude/config.json`:
+Edit `~/.claude/config.json` (replace `YOUR_USERNAME`):
 
 ```json
 {
@@ -374,24 +327,18 @@ Edit `~/.claude/config.json`:
 }
 ```
 
-Replace `YOUR_USERNAME` with your actual username.
-
 Restart Claude Code.
 
-### Step 3: Test the MCP Server
+### 2. Test the MCP Server
 
 ```
 Use the api-validator MCP server to validate http://localhost:5000/health
 ```
 
-Claude should invoke your MCP server and return validation results.
-
-### Step 4: Create the Self-Validating Skill
-
-Create `~/.claude/skills/implement-verified/`:
+### 3. Create the Self-Correcting Skill
 
 ```bash
-mkdir ~/.claude/skills/implement-verified
+mkdir -p ~/.claude/skills/implement-verified
 cd implement-verified
 ```
 
@@ -409,139 +356,131 @@ Create `skill.json`:
 
 Create `prompt.txt`:
 
-```txt
-You are a self-validating implementation assistant. You implement features and automatically verify they work correctly.
+```text
+You are a self-validating implementation assistant. You implement features and automatically verify they work.
 
 PROCESS:
-1. Ask the user for the feature description
+1. Ask user for feature description
 2. Implement the feature
-3. Validate using the api-validator MCP server
-4. If validation fails, analyze the error and fix it
+3. Validate using api-validator MCP server
+4. If validation fails, analyze error and fix
 5. Repeat validation up to 3 times or until success
 
 VALIDATION LOOP:
-- After implementing, IMMEDIATELY validate
-- Parse validation errors carefully
-- Form specific hypotheses about what's wrong
-- Make targeted fixes (don't rewrite everything)
-- Track attempts: stop after 3 failed attempts
+After implementation, IMMEDIATELY validate with api-validator.
+If it fails:
+- Parse the error carefully
+- Form a specific hypothesis about what's wrong
+- Make a targeted fix (not a full rewrite)
+- Track attempts (stop after 3 failures)
 
-EXAMPLE FLOW:
+EXAMPLE:
 User: "Add a /health endpoint that returns {status: ok}"
 
-Attempt 1: Implement the endpoint
-→ Validate with api-validator
-→ If fails: analyze error, fix specific issue
+You:
+1. Implement the endpoint
+2. Validate: http://localhost:5000/health
+3. If 404: endpoint not registered correctly → fix routing
+4. If 500: code error → fix implementation
+5. If wrong response: schema mismatch → fix response
+6. Report success or final diagnostics
 
-Attempt 2: Validate again
-→ If fails: try different fix approach
-
-Attempt 3: Final validation
-→ If still fails: report detailed diagnostics to user
-
-SUCCESS: Report validation passed and show final code
-
-IMPORTANT:
-- Use the api-validator MCP server (validate_endpoint tool)
+KEY POINTS:
+- Use api-validator MCP server (not agents - you need real HTTP validation)
 - Don't give up after first failure
 - Learn from each validation error
 - Keep user informed of progress
+
+This skill doesn't need agents - you do the implementation directly because you need continuous context about what you've tried.
 ```
 
-### Step 5: Test the Self-Validating Skill
+### 4. Test Self-Correction
 
-First, start the orbital-travel-planner app:
+Start the application:
 
 ```bash
 cd /path/to/orbital-travel-planner
 python -m flask run
 ```
 
-Then invoke the skill:
+Invoke the skill:
 
 ```
 /implement-verified
 ```
 
-When asked, say:
+When prompted:
 ```
-Add a /health endpoint that returns {"status": "ok", "service": "orbital-travel"}
+Add a /health endpoint returning {"status": "ok", "service": "orbital-travel"}
 ```
 
-Watch Claude:
+Watch the skill:
 1. Implement the feature
-2. Validate with the MCP server
-3. If it fails, fix and retry
-4. Report success or failure after max attempts
+2. Validate with MCP server
+3. If it fails, fix and retry automatically
+4. Report success after validation passes
 
-### Step 6: Test with Intentional Error
+### What Just Happened?
 
-Try a more complex feature that might fail:
+The skill implemented code AND validated it worked. When validation failed, it analyzed the error and fixed it automatically. The MCP server provided real HTTP validation that Claude can't do natively.
 
-```
-/implement-verified
+Notice this skill didn't spawn agents - it needs continuous context about implementation attempts and fixes. Agents aren't always the answer.
 
-Add a /api/destinations endpoint that returns all destinations from the database sorted by name
-```
+### Verification
 
-If validation fails (e.g., wrong schema, missing field), watch Claude fix it automatically.
-
-### Success Criteria ✅
-
-- [ ] MCP server is installed and configured
-- [ ] Claude can invoke the validate_endpoint tool
+- [ ] MCP server is working
 - [ ] `/implement-verified` skill exists
-- [ ] Skill demonstrates at least one automatic fix attempt
-- [ ] You understand the fix-verify-repeat pattern
+- [ ] Skill demonstrates automatic fixes after validation failures
+- [ ] Understand when skills need MCP servers vs. agents
 
 ### Troubleshooting
 
-**Problem:** MCP server doesn't start
-- **Solution:** Check Python path in config
-- Test server manually: `python3 server.py`
-- Check dependencies are installed
+**MCP server doesn't start:**
+- Check Python path in config
+- Test manually: `python3 server.py`
+- Verify dependencies installed
 
-**Problem:** Validation always fails
-- **Solution:** Ensure the app is running (flask run)
-- Check URL is correct (http://localhost:5000)
-- Verify endpoint actually exists
+**Validation always fails:**
+- Ensure application is running
+- Check URL is correct
+- Verify endpoint exists
 
-**Problem:** Skill doesn't retry fixes
-- **Solution:** Check prompt includes retry logic
-- Ensure validation errors are clear
-- Make sure attempt counter is tracked
+**Skill doesn't retry fixes:**
+- Check validation errors are clear
+- Ensure skill tracks attempt counter
 
-## Stage 2 Complete! 🎉
+## Stage 2 Summary
 
-You now have:
-- A multi-agent orchestration skill
-- A custom validation MCP server
-- A self-correcting implementation loop
-- Understanding of agent coordination patterns
+You built two powerful skills:
+- **`/validate-api`** - Comprehensive API analysis (uses agents for efficiency)
+- **`/implement-verified`** - Self-correcting implementation (uses MCP for validation)
 
-### Quick Knowledge Check
+### Key Insights
 
-1. How do agents pass data to each other?
-2. What's the difference between sequential and parallel agent execution?
-3. What protocol do MCP servers use?
-4. How many times should a self-validating loop retry?
-5. Why use structured JSON instead of prose for agent communication?
+**When to use agents in skills:**
+- Discrete tasks with clean boundaries
+- When fresh context improves focus
+- When cheaper models can handle subtasks
+- When parallel or sequential work makes sense
 
-### Going Deeper (Optional)
+**When NOT to use agents:**
+- When you need continuous context (like iterative fixes)
+- When the task is already focused
+- When coordinating agents adds complexity without benefit
 
-1. **Enhanced Validation**: Add schema validation for POST endpoints
+**MCP servers provide:**
+- Capabilities Claude doesn't have natively (HTTP calls, file system, external APIs)
+- Reusable tools across multiple skills
+- Standardized interfaces
 
-2. **Smarter Fixes**: Track what fixes were tried and don't repeat them
+### Knowledge Check
 
-3. **Parallel Validation**: Modify `/validate-api` to validate multiple endpoints in parallel
-
-4. **Validation Reports**: Generate HTML reports from validation results
-
-## What's Next?
-
-In [Stage 3: Advanced Agent Orchestration](./stage3-orchestration.md), you'll build complex agent dependency graphs with chaos testing!
+1. What does `/validate-api` do for users?
+2. Why does that skill use agents internally?
+3. What does `/implement-verified` do for users?
+4. Why doesn't that skill use agents?
+5. When should you build an MCP server vs. use agents?
 
 ---
 
-**Navigation:**
-⬅️ [Back: Stage 1](./stage1-foundations.md) | [Overview](./README.md) | ➡️ [Next: Stage 3](./stage3-orchestration.md)
+**Next:** [Stage 3: Resilience Testing Skills](./stage3-orchestration.md)

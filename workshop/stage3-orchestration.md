@@ -1,46 +1,43 @@
-# Stage 3: Advanced Agent Orchestration
+# Stage 3: Resilience Testing Skills
 
-**Time:** 13:00–14:00 (60 minutes)
-**Goal:** Create skills that coordinate multiple specialized agents in parallel with complex dependency graphs.
+**Time:** 60 minutes
+**Goal:** Build a skill that tests system resilience under failure conditions
 
 ## Learning Objectives
 
-By the end of this stage, you'll master:
-- Running agents in parallel with dependencies
-- Using background tasks effectively
-- Polling agent outputs with TaskOutput
-- Building complex coordination patterns
-- Chaos testing and failure injection
+- Build a chaos engineering skill that finds resilience issues
+- Understand when parallel task execution helps
+- Create skills that propose concrete fixes
+- Learn patterns for skills with complex workflows
+
+## Overview
+
+You'll build `/chaos-test` - a skill that:
+- Injects failures into your application
+- Generates load to trigger issues
+- Analyzes failure patterns
+- Proposes specific fixes
+
+**Why this uses agents:** This skill has four distinct phases that can run independently. Using agents lets us run some in parallel (faster) and keeps each phase focused on one job.
 
 ## What You're Building
 
-A `/chaos-test` skill that orchestrates four agents with mixed parallel/sequential execution:
-- **Agents 1 & 2**: Run in parallel (chaos injection + load generation)
-- **Agent 3**: Waits for Agent 2, analyzes patterns
-- **Agent 4**: Waits for Agent 3, proposes fixes
+A comprehensive chaos testing skill that:
+1. Finds where your system breaks under stress
+2. Identifies patterns in failures
+3. Recommends specific code changes
+4. Helps you build more resilient systems
 
-This creates a dependency graph:
-```
-Agent 1 (Chaos) ──┐
-                  ├──> (both run in parallel)
-Agent 2 (Load) ───┴──> Agent 3 (Analyze) ──> Agent 4 (Fix)
-```
+From the user's perspective: `/chaos-test` → detailed report with fixes
 
-## Step 1: Understand the Architecture
+Internally: Uses multiple agents for efficiency, but that's transparent to the user.
 
-### Parallel Execution
-Agents 1 and 2 are independent—they don't need each other's outputs. Run them simultaneously.
+## Create the Chaos Testing Skill
 
-### Sequential Execution
-Agent 3 needs Agent 2's data. Agent 4 needs Agent 3's analysis. They must wait.
-
-### Background Tasks
-Long-running agents (chaos injection, load testing) should use `run_in_background: true`.
-
-## Step 2: Create the Chaos Test Skill
+### 1. Set Up the Skill
 
 ```bash
-mkdir ~/.claude/skills/chaos-test
+mkdir -p ~/.claude/skills/chaos-test
 cd chaos-test
 ```
 
@@ -50,154 +47,140 @@ Create `skill.json`:
 {
   "name": "chaos-test",
   "version": "1.0.0",
-  "description": "Orchestrates chaos testing with parallel and sequential agents",
+  "description": "Tests system resilience by injecting failures and analyzing patterns",
   "author": "Your Name",
   "invocation": "/chaos-test"
 }
 ```
 
+### 2. Write the Skill Logic
+
 Create `prompt.txt`:
 
-```txt
-You are a chaos engineering orchestrator. You coordinate four agents to inject failures, generate load, analyze patterns, and propose fixes.
+```text
+You are a chaos engineering specialist. Test system resilience by injecting failures, generating load, analyzing patterns, and proposing fixes.
 
-ARCHITECTURE:
+PHASE 1: PARALLEL SETUP (Run simultaneously for speed)
 
-Phase 1: PARALLEL CHAOS & LOAD (Background)
-- Agent 1 (Chaos Injector): Modify the app to inject random failures
-  - Add random delays (time.sleep(random.uniform(0.1, 2)))
-  - Add random exceptions (raise Exception("Chaos!") with 10% probability)
-  - Write chaos points to chaos-config.json
-  - Run in BACKGROUND
+Agent 1 (Chaos Injector) - Background:
+"Modify the application to inject random failures:
+- Add random delays: time.sleep(random.uniform(0.1, 2))
+- Add random exceptions: raise Exception('Chaos!') with 10% probability
+- Document injection points in chaos-config.json"
 
-- Agent 2 (Load Generator): Repeatedly call API endpoints
-  - Make 50 requests to /api/destinations
-  - Make 50 requests to /api/bookings
-  - Log response times, status codes, errors to load-results.json
-  - Run in BACKGROUND
+Agent 2 (Load Generator) - Background:
+"Generate load against the API:
+- 50 requests to /api/destinations
+- 50 requests to /api/bookings
+- Log all results (response time, status, errors) to load-results.json"
 
-Phase 2: WAIT FOR DATA
-- Use TaskOutput to poll Agent 2's background task
-- Wait until load-results.json has at least 100 entries
-- Maximum wait: 60 seconds
+WHY PARALLEL: These tasks are independent. Running them together is faster.
+WHY BACKGROUND: They take time. We don't want to wait.
 
-Phase 3: ANALYZE PATTERNS (Sequential)
-- Agent 3 (Pattern Analyzer): Read load-results.json
-  - Identify failure patterns (which endpoints failed most?)
-  - Calculate error rates, p95/p99 latencies
-  - Correlate with chaos-config.json to find root causes
-  - Write analysis to failure-patterns.json
+PHASE 2: WAIT FOR DATA
+Poll Agent 2's output until load-results.json has sufficient data (100+ entries) or 60 seconds elapsed.
 
-Phase 4: PROPOSE FIXES (Sequential)
-- Agent 4 (Fix Proposer): Read failure-patterns.json
-  - For each pattern, propose specific code fixes
-  - Include: file path, line number, what to change, why
-  - Prioritize by impact (highest error rate first)
-  - Write proposals to fix-proposals.json
+PHASE 3: ANALYSIS (Sequential - needs Phase 2 data)
 
-Phase 5: REPORT
-- Read all JSON files
-- Create comprehensive report: chaos-test-report.md
-- Include: chaos config, load results summary, failure patterns, fix proposals
-- Highlight top 3 most critical issues
+Agent 3 (Pattern Analyzer):
+"Read load-results.json and analyze:
+- Which endpoints failed most frequently?
+- What are the error rates and latency percentiles (p95, p99)?
+- Correlate failures with chaos-config.json to identify root causes
+Write analysis to failure-patterns.json"
 
-CRITICAL RULES:
-1. Agents 1 & 2 MUST run in parallel using run_in_background: true
-2. Poll Agent 2 with TaskOutput—don't assume it's done
-3. Only spawn Agent 3 after sufficient data collected
-4. Only spawn Agent 4 after Agent 3 completes
-5. If background tasks timeout (>60s), proceed with partial data
-6. All agent communication via JSON files
+WHY SEQUENTIAL: Needs data from Agent 2.
+WHY AGENT: Fresh context focused purely on data analysis.
 
-TASK COORDINATION:
-- Use a single message with multiple Task calls for parallel agents
-- Wait for previous agent completion before spawning next
-- Check file existence before reading
+PHASE 4: FIXES (Sequential - needs Phase 3 analysis)
 
-ERROR HANDLING:
-- If Agent 1 or 2 fails, note it but continue with available data
-- If no data collected, report "insufficient data for analysis"
-- If timeout occurs, save partial results and explain in report
+Agent 4 (Fix Proposer):
+"Read failure-patterns.json and propose specific code fixes:
+- For each pattern, suggest concrete changes (file, line, what to change, why)
+- Prioritize by impact (highest error rate first)
+Write proposals to fix-proposals.json"
+
+WHY SEQUENTIAL: Needs analysis from Agent 3.
+WHY AGENT: Fresh context focused on fix generation.
+
+PHASE 5: REPORT
+Read all JSON files and create chaos-test-report.md:
+- Chaos configuration summary
+- Load testing results (requests, success rate, latencies)
+- Failure patterns identified
+- Prioritized fix proposals
+- Top 3 most critical issues
+
+IMPLEMENTATION NOTES:
+- Agents 1 & 2 must spawn in ONE message (both Task calls together) to run in parallel
+- Use run_in_background: true for long-running tasks
+- Poll with TaskOutput to check Agent 2 progress
+- Only spawn Agent 3 after sufficient data collected
+- Only spawn Agent 4 after Agent 3 completes
+- If timeout, proceed with partial data (graceful degradation)
+
+The user just sees: /chaos-test → comprehensive report
+The agents are how we make it fast and efficient internally.
 ```
 
-## Step 3: Prepare the Test Environment
+### 3. Prepare the Environment
 
-Before running chaos tests, ensure the orbital-travel-planner app is running:
+Ensure the application is running:
 
 ```bash
 cd /path/to/orbital-travel-planner
 python -m flask run
 ```
 
-In another terminal, verify endpoints work:
+Verify endpoints respond:
 
 ```bash
 curl http://localhost:5000/api/destinations
 curl http://localhost:5000/api/bookings
 ```
 
-## Step 4: Run the Chaos Test
-
-Invoke the skill:
+### 4. Run the Chaos Test
 
 ```
 /chaos-test
 ```
 
-Watch the orchestration:
+The skill will:
+1. Inject chaos and generate load (in parallel)
+2. Wait for sufficient data
+3. Analyze failure patterns
+4. Propose specific fixes
+5. Generate comprehensive report
 
-1. **Agents 1 & 2 spawn together** (you'll see both Task calls in one message)
-2. **Polling begins** (TaskOutput checks Agent 2's progress)
-3. **Agent 3 spawns** after data is ready
-4. **Agent 4 spawns** after analysis completes
-5. **Report generated** with all findings
+This takes a few minutes. The skill is doing real chaos testing on your system.
 
-## Step 5: Monitor Background Agents
-
-While chaos testing runs, you can manually check progress:
-
-```bash
-# Watch the load results accumulate
-watch -n 1 'wc -l load-results.json'
-
-# See chaos injection points
-cat chaos-config.json
-
-# Monitor app logs for injected failures
-tail -f /path/to/app/logs/*.log
-```
-
-## Step 6: Analyze the Report
-
-Read the generated report:
+### 5. Review the Report
 
 ```bash
 cat chaos-test-report.md
 ```
 
-It should include:
+Expected sections:
 - **Chaos Configuration**: What failures were injected
-- **Load Test Summary**: Total requests, success rate, latencies
+- **Load Test Results**: Total requests, success rate, latencies
 - **Failure Patterns**: Which endpoints failed, why, how often
-- **Fix Proposals**: Ranked list of code changes to improve resilience
+- **Fix Proposals**: Ranked list of code changes with specifics
 
-## Step 7: Implement a Fix
-
-Pick the top-priority fix from the report and implement it:
+### 6. Implement a Fix
 
 ```
-Based on the chaos-test-report.md, implement the highest-priority fix to improve resilience.
+Based on chaos-test-report.md, implement the highest-priority fix
 ```
 
-Claude should:
+The skill should:
 1. Read the fix proposal
-2. Locate the relevant code
-3. Apply the fix (e.g., add timeout, retry logic, error handling)
-4. Verify the change
+2. Find the relevant code
+3. Apply the fix (add timeout, retry logic, error handling)
+4. Show you what changed
 
-## Step 8: Verify the Fix
+### 7. Verify the Fix
 
-Re-run chaos testing to verify improvement:
+Re-run chaos testing:
 
 ```
 /chaos-test
@@ -208,157 +191,121 @@ Compare the new report to the previous one:
 - Are latencies more stable?
 - Did the specific failure pattern disappear?
 
-## Step 9: Understanding Task Coordination
+### What Just Happened?
 
-Let's examine how parallel vs. sequential execution works.
+From your perspective: You ran `/chaos-test` and got a detailed report with fixes.
 
-**Parallel (both in one message):**
-```python
-# Claude's internal task spawning
-Task(agent_type="Bash", task="chaos injection", run_in_background=True)
-Task(agent_type="Bash", task="load generation", run_in_background=True)
-```
+Internally: The skill used four agents with a mix of parallel and sequential execution. But that's an implementation detail that made the skill faster and more efficient.
 
-**Sequential (wait for completion):**
-```python
-# Wait for Agent 2
-result = TaskOutput(task_id="agent_2_id", block=True)
+**Why this design works:**
+- Chaos injection and load generation are independent → run in parallel
+- Pattern analysis needs load data → wait and run sequentially
+- Fix proposals need pattern analysis → wait and run sequentially
+- Each phase gets fresh, focused context
+- Cheaper models can handle specific tasks
 
-# Only then spawn Agent 3
-Task(agent_type="general-purpose", task="analyze patterns")
-```
+## Verification
 
-## Success Criteria ✅
+- [ ] `/chaos-test` skill works end-to-end
+- [ ] Report identifies real failure patterns
+- [ ] Fix proposals are specific and actionable
+- [ ] Re-running after fixes shows improvement
+- [ ] Understand why some work runs in parallel vs. sequential
 
-- [ ] Four agents run with correct dependencies
-- [ ] Agents 1 & 2 run in parallel (background)
-- [ ] Agent 3 waits for Agent 2's data
-- [ ] Agent 4 waits for Agent 3's analysis
-- [ ] Report includes all phases
-- [ ] You identified at least one real issue
-- [ ] You can diagram the agent flow
+## Troubleshooting
 
-### Troubleshooting
+**Agents run one at a time instead of parallel:**
+- Ensure both Task calls are in the SAME message in the prompt
+- Both must specify `run_in_background: true`
 
-**Problem:** Agents run sequentially instead of parallel
-- **Solution:** Ensure both Task calls are in the SAME message
-- Check both have `run_in_background: true`
-
-**Problem:** Background task never completes
-- **Solution:** Add timeout to TaskOutput (e.g., `timeout: 60000`)
-- Check the app is actually running
-
-**Problem:** Insufficient data collected
-- **Solution:** Increase number of requests in load generator
-- Reduce wait threshold in the skill
-
-**Problem:** Can't find failure patterns
-- **Solution:** Inject more obvious failures (higher probability)
-- Check chaos-config.json was actually applied
-
-## Going Deeper (Optional)
-
-### Challenge 1: Enhanced Chaos Injection
-
-Modify Agent 1 to inject more sophisticated failures:
-- Database connection failures
-- Network timeouts
-- Memory pressure
-- Rate limit errors
-
-### Challenge 2: Real-Time Monitoring
-
-Add a fifth agent that monitors in real-time:
-```
-Agent 5 (Monitor): Runs continuously, tails logs, alerts on anomalies
-```
-
-### Challenge 3: Gradual Chaos
-
-Instead of all-at-once chaos, gradually increase failure rates:
-- Minute 1: 5% failure rate
-- Minute 2: 10% failure rate
-- Minute 3: 20% failure rate
-
-Track when the system breaks.
-
-### Challenge 4: Comparative Analysis
-
-Run chaos testing on two branches:
-- main branch (baseline)
-- feature branch (after fix)
-
-Compare results to quantify improvement.
-
-## Real-World Applications
-
-This pattern applies to many scenarios:
-
-**Performance Testing:**
-- Agent 1: Warm up cache
-- Agent 2: Ramp up load
-- Agent 3: Analyze metrics
-- Agent 4: Identify bottlenecks
-
-**Security Scanning:**
-- Agent 1: Crawl endpoints
-- Agent 2: Test authentication
-- Agent 3: Find vulnerabilities
-- Agent 4: Suggest mitigations
-
-**Deployment Validation:**
-- Agent 1: Deploy to staging
-- Agent 2: Run smoke tests
-- Agent 3: Compare to prod metrics
-- Agent 4: Approve or rollback
-
-## Key Patterns Learned
-
-### Dependency Management
-- **Independent**: Run in parallel
-- **Sequential**: Wait for previous completion
-- **Mixed**: Some parallel, some sequential
-
-### Background Task Polling
-```python
-# Spawn background task
-task_id = Task(..., run_in_background=True)
-
-# Poll until ready
-while not ready:
-    output = TaskOutput(task_id, block=False, timeout=5000)
-    ready = check_output_sufficient(output)
-
-# Proceed with next step
-```
-
-### Graceful Degradation
-- Set timeouts on background tasks
+**Background tasks never finish:**
+- Add timeout check (60 seconds max)
 - Proceed with partial data if needed
+
+**Not enough data collected:**
+- Increase request count in load generator
+- Lower the data threshold
+
+**Can't identify failure patterns:**
+- Increase chaos injection probability
+- Verify chaos-config.json is being used
+
+## Understanding the Design
+
+### Why Parallel Execution Here?
+
+Chaos injection and load generation are completely independent. Running them in parallel:
+- Finishes faster (both tasks complete simultaneously)
+- Uses resources efficiently
+- Doesn't add complexity (no coordination needed)
+
+### Why Sequential After That?
+
+Pattern analysis needs load data. Fix proposals need pattern analysis. This creates natural dependencies that require sequential execution.
+
+### Why Not Just Do Everything Directly in the Skill?
+
+You could, but:
+- Context would get huge (chaos code + load results + analysis + fixes)
+- Can't use cheaper models for focused tasks
+- Can't run anything in parallel
+- Harder to maintain and debug
+
+Agents let the skill delegate work efficiently while staying focused on coordination.
+
+## Stage 3 Summary
+
+You built `/chaos-test` - a powerful resilience testing skill that:
+- Identifies system weaknesses under failure conditions
+- Analyzes patterns in failures
+- Proposes concrete, prioritized fixes
+- Uses agents internally for speed and efficiency
+
+### Key Insights
+
+**Skills vs. Agents:**
+- Users invoke skills (`/chaos-test`)
+- Skills may use agents internally (implementation detail)
+- Focus on what the skill does, not how it does it
+
+**When parallel execution helps:**
+- Tasks are independent
+- Both take significant time
+- No coordination needed
+- Results don't depend on each other
+
+**When sequential execution is needed:**
+- Task B needs output from Task A
+- Natural dependencies in the workflow
+- Order matters for correctness
+
+**Graceful degradation:**
+- Set timeouts on long-running tasks
+- Proceed with partial data when needed
 - Report what worked and what didn't
 
-## Stage 3 Complete! 🎉
+### Knowledge Check
 
-You now master:
-- Complex agent dependency graphs
-- Parallel and sequential execution
-- Background task management
-- Chaos engineering patterns
-- Fix verification loops
+1. What does `/chaos-test` do for users?
+2. Why do chaos injection and load generation run in parallel?
+3. Why does pattern analysis wait for load generation?
+4. When is it worth using agents in a skill vs. doing work directly?
+5. What's "graceful degradation" and why does it matter?
 
-### Quick Knowledge Check
+### Advanced Exercises (Optional)
 
-1. When should agents run in parallel vs. sequentially?
-2. How do you check if a background agent is done?
-3. What's the max wait time for background tasks?
-4. How should agents communicate in parallel workflows?
-5. What's graceful degradation in agent orchestration?
+**Enhanced Chaos:**
+Add more failure types (database timeouts, memory pressure, network issues).
 
-## What's Next?
+**Real-Time Monitoring:**
+Add a monitoring agent that watches logs in real-time and alerts on anomalies.
 
-In [Stage 4: Daily Workflow Skills](./stage4-workflow-skills.md), you'll build practical skills for real engineering workflows like retros, PR reviews, and onboarding!
+**Gradual Ramp:**
+Gradually increase failure rates (5% → 10% → 20%) and track when the system breaks.
+
+**Comparative Testing:**
+Run chaos testing on two different branches and compare results.
 
 ---
 
-**Navigation:**
-⬅️ [Back: Stage 2](./stage2-meta-programming.md) | [Overview](./README.md) | ➡️ [Next: Stage 4](./stage4-workflow-skills.md)
+**Next:** [Stage 4: Workflow Automation](./stage4-workflow-skills.md)

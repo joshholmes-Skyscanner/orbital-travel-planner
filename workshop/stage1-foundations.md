@@ -1,46 +1,49 @@
-# Stage 1: Foundations & Setup
+# Stage 1: Foundations
 
-**Time:** 10:30–11:00 (30 minutes)
-**Goal:** Get hands-on experience with the core building blocks: skills, agents, and MCP servers.
+**Time:** 30 minutes
+**Goal:** Understand core building blocks—skills, agents, and MCP servers
 
 ## Learning Objectives
 
-By the end of this stage, you'll understand:
-- How to create and structure custom skills
-- How to spawn and coordinate different agent types
-- How to add and configure MCP servers
-- Where Claude Code stores configuration and skills
+- Create and structure custom Claude Code skills
+- Spawn and coordinate different agent types
+- Configure MCP servers
+- Understand where configuration and skills are stored
 
-## Part A: Create a Simple Skill (10 minutes)
+## Part A: Create a Custom Skill
 
-### What Are Skills?
+**Time:** 10 minutes
 
-Skills are reusable Claude Code extensions that add custom commands. They're like slash commands that inject specialized instructions into Claude's context.
+### Background: Skills Overview
 
-### Step 1: Navigate to the Skills Directory
+Skills extend Claude Code with reusable commands. They inject specialized instructions into Claude's context when invoked.
+
+**Skill structure:**
+```
+~/.claude/skills/skill-name/
+├── skill.json    # Metadata and configuration
+└── prompt.txt    # Instructions for Claude
+```
+
+### 1. Examine an Existing Skill
 
 ```bash
 cd ~/.claude/skills
 ls
-```
-
-You should see existing skills like `keybindings-help`. Let's examine one:
-
-```bash
 cat keybindings-help/skill.json
 cat keybindings-help/prompt.txt
 ```
 
-### Step 2: Create Your First Skill
+Note the structure: a JSON manifest and a prompt file.
 
-Create a new skill directory:
+### 2. Create a New Skill Directory
 
 ```bash
-mkdir hello-skill
-cd hello-skill
+mkdir -p ~/.claude/skills/hello-skill
+cd ~/.claude/skills/hello-skill
 ```
 
-### Step 3: Create the Manifest File
+### 3. Create the Manifest
 
 Create `skill.json`:
 
@@ -48,41 +51,40 @@ Create `skill.json`:
 {
   "name": "hello-skill",
   "version": "1.0.0",
-  "description": "A simple greeting skill that demonstrates basic skill structure",
+  "description": "Project-aware greeting and status check",
   "author": "Your Name",
   "invocation": "/hello-skill"
 }
 ```
 
-**What each field means:**
+**Field definitions:**
 - `name`: Internal identifier (must match directory name)
 - `version`: Semantic version for tracking changes
-- `description`: What the skill does (shown in skill list)
-- `author`: Your name or team name
-- `invocation`: The command users type (must start with `/`)
+- `description`: Displayed in skill listings
+- `author`: Your name or team identifier
+- `invocation`: Command users type (must start with `/`)
 
-### Step 4: Create the Prompt File
+### 4. Create the Prompt
 
 Create `prompt.txt`:
 
-```txt
-You are a friendly greeting assistant. When invoked:
+```text
+You are a project-aware greeting assistant.
 
-1. Greet the user warmly
-2. Check the current directory and mention what project they're working on
-3. Offer a brief tip about Claude Code usage
-4. Ask if they need help with anything specific
+When invoked:
+1. Read README.md in the current directory (if present)
+2. Greet the user and mention the project name
+3. Check git status for uncommitted changes
+4. Provide a relevant tip based on project type:
+   - Python: pytest, linting, or virtual environment tips
+   - JavaScript: npm scripts or dependency tips
+   - General: useful git commands
+5. Ask what the user would like to work on
 
-Keep your response concise and helpful. Use the Read tool if you need to check files.
+Use Read and Bash tools as needed. Keep responses under 100 words.
 ```
 
-**Prompt design tips:**
-- Be specific about what the skill should do
-- Use numbered steps for clarity
-- Mention which tools to use
-- Keep it focused on one task
-
-### Step 5: Test Your Skill
+### 5. Test the Skill
 
 In your Claude Code session:
 
@@ -90,187 +92,151 @@ In your Claude Code session:
 /hello-skill
 ```
 
-The skill should activate and greet you!
+The skill should activate and provide project context.
 
-### Step 6: Make It More Useful
+### Verification
 
-Let's enhance the skill to be project-aware. Edit `prompt.txt`:
-
-```txt
-You are a project-aware greeting assistant. When invoked:
-
-1. Read the README.md file in the current directory (if it exists)
-2. Greet the user and mention the project name from the README
-3. Check git status to see if there are uncommitted changes
-4. Provide a relevant tip based on the project type:
-   - Python projects: mention pytest or linting
-   - JavaScript projects: mention npm scripts
-   - Any project: mention useful git commands
-5. Ask what they'd like to work on
-
-Use the Read and Bash tools as needed. Keep your response under 100 words.
-```
-
-Test it again:
-
-```
-/hello-skill
-```
-
-### Success Criteria ✅
-
-- [ ] You created `~/.claude/skills/hello-skill/` directory
-- [ ] `skill.json` and `prompt.txt` files exist
-- [ ] You can invoke the skill with `/hello-skill`
-- [ ] The skill responds appropriately
-- [ ] You understand the basic skill structure
+- [ ] Created `~/.claude/skills/hello-skill/` directory
+- [ ] Both `skill.json` and `prompt.txt` exist
+- [ ] Skill invokes with `/hello-skill` command
+- [ ] Skill provides project-specific information
 
 ### Troubleshooting
 
-**Problem:** Skill doesn't appear when typed
-- **Solution:** Restart Claude Code or reload config
-- Check that directory name matches `name` in `skill.json`
-
-**Problem:** Skill errors when invoked
-- **Solution:** Check `prompt.txt` for syntax errors
-- Ensure the prompt gives clear instructions
-
-**Problem:** Skill doesn't find files
-- **Solution:** Make sure you're in the right directory
+**Skill doesn't appear:**
+- Restart Claude Code
+- Verify directory name matches `name` field in skill.json
 - Check file permissions
 
-## Part B: Spawn and Coordinate Agents (10 minutes)
+**Skill errors on invocation:**
+- Validate JSON syntax in skill.json
+- Ensure prompt.txt provides clear instructions
+- Verify current directory has expected files
 
-### What Are Agents?
+## Part B: Agent Orchestration
 
-Agents are specialized Claude instances that handle specific tasks. They run independently and can work in parallel or sequence.
+**Time:** 10 minutes
 
-### Available Agent Types
+### Background: Agent Types
 
-- **Explore**: Fast codebase exploration, searches, and questions
-- **Plan**: Software architecture and implementation planning
+Agents are specialized Claude instances for specific tasks:
+
+- **Explore**: Codebase exploration and analysis
+- **Plan**: Architecture and implementation planning
 - **Bash**: Command execution specialist
 - **general-purpose**: Multi-step research and complex tasks
 
-### Step 1: Spawn an Explore Agent
-
-Ask Claude Code to spawn an Explore agent:
+### 1. Spawn an Explore Agent
 
 ```
-Please spawn an Explore agent to map the orbital-travel-planner codebase structure. I want to understand:
+Spawn an Explore agent to analyze the orbital-travel-planner codebase structure. Map:
 - Main application files
 - API endpoint locations
 - Database models
-- Frontend files
+- Frontend components
 ```
 
-Watch how Claude spawns the agent using the Task tool.
+Observe Claude using the Task tool to spawn the agent.
 
-### Step 2: Spawn a Bash Agent
+### 2. Spawn a Bash Agent
 
-While the Explore agent is running, spawn a Bash agent:
+While the Explore agent runs:
 
 ```
-Please spawn a Bash agent to check if there are any tests in this project and run them.
+Spawn a Bash agent to check for tests in this project and run them
 ```
 
-Notice both agents can run in parallel!
+Both agents can run concurrently.
 
-### Step 3: Multiple Agents in Parallel
-
-Try spawning multiple agents at once:
+### 3. Parallel Agent Execution
 
 ```
 Spawn two agents in parallel:
-1. An Explore agent to find all API endpoints
-2. A Bash agent to check Python dependencies
+1. Explore agent to find all API endpoints
+2. Bash agent to check Python dependencies
 ```
 
-Claude should send both Task tool calls in a single message.
+Claude should send both Task calls in a single message.
 
-### Step 4: Background Agents
-
-Try running an agent in the background:
+### 4. Background Execution
 
 ```
-Spawn a Bash agent in the background to run a comprehensive test suite with coverage reporting.
+Spawn a Bash agent in the background to run the full test suite with coverage reporting
 ```
 
-Then use `TaskOutput` to check progress:
+Check progress:
 
 ```
-Check the output of the background task.
+Check the output of the background task
 ```
 
-### Step 5: Understanding Agent Communication
-
-Agents work best when they communicate through structured data. Try this:
+### 5. Agent Communication via Files
 
 ```
-1. Spawn an Explore agent to find all API endpoints and write them to api-endpoints.json
-2. Then spawn a general-purpose agent to read api-endpoints.json and generate test cases for each endpoint
+1. Spawn an Explore agent to find all API endpoints and write results to api-endpoints.json
+2. After completion, spawn a general-purpose agent to read api-endpoints.json and generate test cases for each endpoint
 ```
 
-Notice how agents pass data via files, not through conversation.
+Agents communicate through structured files, not conversation.
 
-### Success Criteria ✅
+### Verification
 
-- [ ] You successfully spawned an Explore agent
-- [ ] You spawned a Bash agent
-- [ ] You spawned multiple agents in parallel
-- [ ] You used TaskOutput to retrieve background task results
-- [ ] You understand different agent types and when to use each
+- [ ] Successfully spawned an Explore agent
+- [ ] Successfully spawned a Bash agent
+- [ ] Executed multiple agents in parallel
+- [ ] Used TaskOutput to retrieve background task results
+- [ ] Understand when to use each agent type
 
 ### Troubleshooting
 
-**Problem:** Agent times out
-- **Solution:** Break the task into smaller chunks
-- Use background mode for long tasks
+**Agent times out:**
+- Break tasks into smaller chunks
+- Use background mode for long-running operations
 
-**Problem:** Agents don't run in parallel
-- **Solution:** Make sure tasks are truly independent
-- Check that Claude sent both Task calls in one message
+**Agents don't run in parallel:**
+- Ensure tasks are independent
+- Verify Claude sent both Task calls in one message
 
-**Problem:** Can't find agent output
-- **Solution:** Check for files agents created
-- Use TaskOutput with the correct task ID
+**Cannot find agent output:**
+- Check for files agents created
+- Use correct task ID with TaskOutput
 
-## Part C: Add an MCP Server (10 minutes)
+## Part C: MCP Server Configuration
 
-### What Are MCP Servers?
+**Time:** 10 minutes
 
-MCP (Model Context Protocol) servers extend Claude's capabilities with custom tools. They're like plugins that add new functions Claude can call.
+### Background: MCP Servers
 
-### Step 1: Check Existing MCP Configuration
+MCP (Model Context Protocol) servers extend Claude's capabilities with custom tools. They function as plugins providing new functions Claude can invoke.
 
-First, let's see what MCP servers are already configured:
+### 1. Review Existing Configuration
 
 ```bash
 cat pyproject.toml
 ```
 
-Look for the `[tool.claude.mcp]` section. You should see the existing MCP server configuration.
+Look for the `[tool.claude.mcp]` section showing configured MCP servers.
 
-### Step 2: Understand MCP Server Structure
+### 2. Understand MCP Structure
 
-An MCP server has:
-- **Tools**: Functions Claude can call (like `validate_endpoint`)
-- **Parameters**: JSON schema defining inputs
+An MCP server provides:
+- **Tools**: Functions Claude can invoke
+- **Parameters**: JSON Schema defining inputs
 - **Responses**: Structured return values
 
-### Step 3: Test the Existing MCP Server
-
-Try asking Claude to use an MCP tool:
+### 3. Test the Existing MCP Server
 
 ```
-Use the MCP server to validate the /api/destinations endpoint. Check if it returns a 200 status.
+Use the MCP server to validate the /api/destinations endpoint for a 200 status code
 ```
 
-Claude should discover and invoke the MCP server tool.
+Claude should discover and invoke the configured MCP server tool.
 
-### Step 4: Add a Simple MCP Server
+### 4. Add a New MCP Server
 
-Let's add the built-in `time` MCP server as an example. Create or edit `~/.claude/config.json`:
+Add the time MCP server as an example.
+
+Create or edit `~/.claude/config.json`:
 
 ```json
 {
@@ -283,91 +249,83 @@ Let's add the built-in `time` MCP server as an example. Create or edit `~/.claud
 }
 ```
 
-Restart Claude Code to load the new server.
+Restart Claude Code to load the configuration.
 
-### Step 5: Test the New MCP Server
-
-```
-What's the current time according to the MCP time server?
-```
-
-Claude should invoke the time MCP server.
-
-### Step 6: Explore MCP Protocol Basics
-
-Ask Claude to explain:
+### 5. Test the New Server
 
 ```
-Can you explain how MCP servers communicate with you? What's the protocol?
+Query the current time from the MCP time server
 ```
 
-Or fetch the docs:
+### 6. Review MCP Protocol
 
 ```
-Use WebFetch to fetch the MCP protocol documentation from https://modelcontextprotocol.io and summarize the key concepts.
+Explain how MCP servers communicate using the JSON-RPC protocol over stdio
 ```
 
-### Success Criteria ✅
+Or fetch documentation:
 
-- [ ] You reviewed the existing MCP server configuration
-- [ ] You tested the orbital-travel-planner MCP server
-- [ ] You added a new MCP server to your config
-- [ ] Claude successfully invoked your new MCP server
-- [ ] You understand MCP basics (tools, parameters, JSON-RPC)
+```
+Use WebFetch to retrieve and summarize the MCP protocol documentation from https://modelcontextprotocol.io
+```
+
+### Verification
+
+- [ ] Reviewed existing MCP server configuration
+- [ ] Tested orbital-travel-planner MCP server
+- [ ] Added new MCP server to configuration
+- [ ] Claude successfully invoked the new server
+- [ ] Understand MCP basics (tools, parameters, JSON-RPC)
 
 ### Troubleshooting
 
-**Problem:** MCP server not found
-- **Solution:** Check config file syntax
+**MCP server not found:**
+- Verify config file syntax is valid JSON
 - Restart Claude Code after config changes
-- Verify the server command is correct
+- Check server command path is correct
 
-**Problem:** MCP tool invocation fails
-- **Solution:** Check parameter types match schema
-- Ensure the server is running (check logs)
+**Tool invocation fails:**
+- Verify parameter types match schema
+- Check server logs for errors
+- Ensure server process is running
 
-**Problem:** Can't find config file
-- **Solution:** Try `~/.claude/config.json` or check Claude Code docs
-- Ask Claude: "Where is your config file located?"
+**Cannot locate config file:**
+- Check `~/.claude/config.json`
+- Ask Claude for config file location
+- Refer to Claude Code documentation
 
-## Stage 1 Complete! 🎉
+## Stage 1 Summary
 
-You now have:
-- A working custom skill
-- Experience spawning different agent types
-- An MCP server added to your config
-- Understanding of the core Claude Code building blocks
+You have now:
+- Created a working custom skill
+- Spawned and coordinated different agent types
+- Added an MCP server to your configuration
+- Understood core Claude Code building blocks
 
-### Quick Knowledge Check
+### Knowledge Check
 
-Before moving on, make sure you can answer:
-1. Where do custom skills live?
-2. What file do you edit to create a skill?
-3. What are the 4 main agent types?
-4. How do agents communicate data to each other?
+Before proceeding, ensure you can answer:
+
+1. Where do custom skills reside?
+2. What files are required to create a skill?
+3. What are the four main agent types?
+4. How do agents share data with each other?
 5. What protocol do MCP servers use?
 
-### Going Deeper (Optional)
+### Advanced Exercises (Optional)
 
-If you finish early, try:
+**Skill Enhancement:**
+Modify hello-skill to detect programming language and provide language-specific tips.
 
-1. **Skill Enhancement**: Modify your hello-skill to detect the programming language and give language-specific tips
+**Agent Chain:**
+Create a three-agent workflow:
+1. Find all Python files
+2. Identify files without tests
+3. Generate test stubs for uncovered files
 
-2. **Agent Chain**: Create a 3-agent chain:
-   - Agent 1: Find all Python files
-   - Agent 2: Check which ones have tests
-   - Agent 3: Generate missing test stubs
-
-3. **MCP Exploration**: Browse MCP example servers at https://github.com/modelcontextprotocol/servers and add another interesting one
-
-## What's Next?
-
-In [Stage 2: Meta-Programming & Self-Validation](./stage2-meta-programming.md), you'll learn to:
-- Create skills that orchestrate multiple agents
-- Build self-validating loops
-- Create your own MCP server for testing
+**MCP Exploration:**
+Browse https://github.com/modelcontextprotocol/servers and add another server of interest.
 
 ---
 
-**Navigation:**
-⬅️ [Back to Overview](./README.md) | ➡️ [Next: Stage 2 - Meta-Programming](./stage2-meta-programming.md)
+**Next:** [Stage 2: Meta-Programming & Self-Validation](./stage2-meta-programming.md)
