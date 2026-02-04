@@ -21,8 +21,7 @@ Skills extend Claude Code with reusable commands. They inject specialized instru
 **Skill structure:**
 ```
 ~/.claude/skills/skill-name/
-├── skill.json    # Metadata and configuration
-└── prompt.txt    # Instructions for Claude
+└── SKILL.md      # YAML frontmatter + instructions
 ```
 
 ### 1. Create a New Skill Directory
@@ -32,32 +31,16 @@ mkdir -p ~/.claude/skills/hello-skill
 cd ~/.claude/skills/hello-skill
 ```
 
-### 2. Create the Manifest
+### 2. Create the Skill File
 
-Create `skill.json`:
+Create `SKILL.md`:
 
-```json
-{
-  "name": "hello-skill",
-  "version": "1.0.0",
-  "description": "Project-aware greeting and status check",
-  "author": "Your Name",
-  "invocation": "/hello-skill"
-}
-```
+```markdown
+---
+name: hello-skill
+description: Project-aware greeting and status check. Use when the user says hello or asks for project status.
+---
 
-**Field definitions:**
-- `name`: Internal identifier (must match directory name)
-- `version`: Semantic version for tracking changes
-- `description`: Displayed in skill listings
-- `author`: Your name or team identifier
-- `invocation`: Command users type (must start with `/`)
-
-### 3. Create the Prompt
-
-Create `prompt.txt`:
-
-```text
 You are a project-aware greeting assistant.
 
 When invoked:
@@ -73,6 +56,10 @@ When invoked:
 Use Read and Bash tools as needed. Keep responses under 100 words.
 ```
 
+**YAML frontmatter fields:**
+- `name`: Becomes the `/slash-command` (e.g., `/hello-skill`)
+- `description`: Helps Claude decide when to auto-load the skill
+
 ### 4. Test the Skill
 
 In your Claude Code session:
@@ -86,7 +73,7 @@ The skill should activate and provide project context.
 ### Verification
 
 - [ ] Created `~/.claude/skills/hello-skill/` directory
-- [ ] Both `skill.json` and `prompt.txt` exist
+- [ ] `SKILL.md` file exists with YAML frontmatter
 - [ ] Skill invokes with `/hello-skill` command
 - [ ] Skill provides project-specific information
 
@@ -94,12 +81,12 @@ The skill should activate and provide project context.
 
 **Skill doesn't appear:**
 - Restart Claude Code
-- Verify directory name matches `name` field in skill.json
+- Verify directory name matches `name` field in YAML frontmatter
 - Check file permissions
 
 **Skill errors on invocation:**
-- Validate JSON syntax in skill.json
-- Ensure prompt.txt provides clear instructions
+- Validate YAML frontmatter syntax (correct `---` markers)
+- Ensure instructions are clear and actionable
 - Verify current directory has expected files
 
 ## Part B: Agent Orchestration
@@ -296,7 +283,7 @@ You have now:
 Before proceeding, ensure you can answer:
 
 1. Where do custom skills reside?
-2. What files are required to create a skill?
+2. What is the required file structure for a skill?
 3. What are the four main agent types?
 4. How do agents share data with each other?
 5. What protocol do MCP servers use?
