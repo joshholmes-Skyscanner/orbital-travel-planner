@@ -25,25 +25,14 @@ Skills extend Claude Code with reusable commands. They inject specialized instru
 └── prompt.txt    # Instructions for Claude
 ```
 
-### 1. Examine an Existing Skill
-
-```bash
-cd ~/.claude/skills
-ls
-cat keybindings-help/skill.json
-cat keybindings-help/prompt.txt
-```
-
-Note the structure: a JSON manifest and a prompt file.
-
-### 2. Create a New Skill Directory
+### 1. Create a New Skill Directory
 
 ```bash
 mkdir -p ~/.claude/skills/hello-skill
 cd ~/.claude/skills/hello-skill
 ```
 
-### 3. Create the Manifest
+### 2. Create the Manifest
 
 Create `skill.json`:
 
@@ -64,7 +53,7 @@ Create `skill.json`:
 - `author`: Your name or team identifier
 - `invocation`: Command users type (must start with `/`)
 
-### 4. Create the Prompt
+### 3. Create the Prompt
 
 Create `prompt.txt`:
 
@@ -84,7 +73,7 @@ When invoked:
 Use Read and Bash tools as needed. Keep responses under 100 words.
 ```
 
-### 5. Test the Skill
+### 4. Test the Skill
 
 In your Claude Code session:
 
