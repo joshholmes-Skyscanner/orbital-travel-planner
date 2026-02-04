@@ -18,7 +18,7 @@ You'll build `/chaos-test` - a skill that:
 - Analyzes failure patterns
 - Proposes specific fixes
 
-**Why this uses agents:** This skill has four distinct phases. Some can run independently (parallel) while others depend on previous results (sequential). Using agents lets us run work in parallel for speed, and keeps each phase focused on one job.
+**Why this uses subagents:** This skill has four distinct phases. Some can run independently (parallel) while others depend on previous results (sequential). Using subagents lets us run work in parallel for speed, and keeps each phase focused on one job.
 
 ## What You're Building
 
@@ -30,7 +30,7 @@ A comprehensive chaos testing skill that:
 
 From the user's perspective: `/chaos-test` → detailed report with fixes
 
-Internally: Uses four agents with mixed parallel + sequential execution.
+Internally: Claude delegates to subagents with mixed parallel + sequential execution.
 
 ## Create the Chaos Testing Skill
 
@@ -41,34 +41,27 @@ mkdir -p ~/.claude/skills/chaos-test
 cd ~/.claude/skills/chaos-test
 ```
 
-Create `skill.json`:
+Create `SKILL.md`:
 
-```json
-{
-  "name": "chaos-test",
-  "version": "1.0.0",
-  "description": "Tests system resilience by injecting failures and analyzing patterns",
-  "author": "Your Name",
-  "invocation": "/chaos-test"
-}
-```
+```markdown
+---
+name: chaos-test
+description: Tests system resilience by injecting failures and analyzing patterns. Use proactively when testing system reliability or before deployments.
+---
 
-### 2. Write the Skill Logic
-
-Create `prompt.txt`:
-
-```text
 You are a chaos engineering specialist. Test system resilience by injecting failures, generating load, analyzing patterns, and proposing fixes.
 
 PHASE 1: PARALLEL SETUP (Run simultaneously for speed)
 
-Agent 1 (Chaos Injector) - Background:
+Request that Claude spawn two subagents in parallel:
+
+Subagent 1 (Chaos Injector) - Background:
 "Modify the application to inject random failures:
 - Add random delays: time.sleep(random.uniform(0.1, 2))
 - Add random exceptions: raise Exception('Chaos!') with 10% probability
 - Document injection points in chaos-config.json"
 
-Agent 2 (Load Generator) - Background:
+Subagent 2 (Load Generator) - Background:
 "Generate load against the API:
 - 50 requests to /api/search (POST with sample search data)
 - 50 requests to /api/bookings (POST creating bookings)
@@ -78,30 +71,30 @@ WHY PARALLEL: These tasks are independent. Running them together is faster.
 WHY BACKGROUND: They take time. We don't want to wait.
 
 PHASE 2: WAIT FOR DATA
-Poll Agent 2's output until load-results.json has sufficient data (100+ entries) or 60 seconds elapsed.
+Use /tasks to check when load-results.json has sufficient data (100+ entries) or 60 seconds elapsed.
 
 PHASE 3: ANALYSIS (Sequential - needs Phase 2 data)
 
-Agent 3 (Pattern Analyzer):
+Request a subagent for analysis:
 "Read load-results.json and analyze:
 - Which endpoints failed most frequently?
 - What are the error rates and latency percentiles (p95, p99)?
 - Correlate failures with chaos-config.json to identify root causes
 Write analysis to failure-patterns.json"
 
-WHY SEQUENTIAL: Needs data from Agent 2.
-WHY AGENT: Fresh context focused purely on data analysis.
+WHY SEQUENTIAL: Needs data from Phase 1.
+WHY SUBAGENT: Fresh context focused purely on data analysis.
 
 PHASE 4: FIXES (Sequential - needs Phase 3 analysis)
 
-Agent 4 (Fix Proposer):
+Request a subagent for fix proposals:
 "Read failure-patterns.json and propose specific code fixes:
 - For each pattern, suggest concrete changes (file, line, what to change, why)
 - Prioritize by impact (highest error rate first)
 Write proposals to fix-proposals.json"
 
-WHY SEQUENTIAL: Needs analysis from Agent 3.
-WHY AGENT: Fresh context focused on fix generation.
+WHY SEQUENTIAL: Needs analysis from Phase 3.
+WHY SUBAGENT: Fresh context focused on fix generation.
 
 PHASE 5: REPORT
 Read all JSON files and create chaos-test-report.md:
@@ -112,15 +105,15 @@ Read all JSON files and create chaos-test-report.md:
 - Top 3 most critical issues
 
 IMPLEMENTATION NOTES:
-- Agents 1 & 2 must spawn in ONE message (both Task calls together) to run in parallel
-- Use run_in_background: true for long-running tasks
-- Poll with TaskOutput to check Agent 2 progress
-- Only spawn Agent 3 after sufficient data collected
-- Only spawn Agent 4 after Agent 3 completes
+- Ask Claude to spawn both subagents for phases 1 & 2 in parallel
+- Request background execution for long-running tasks
+- Use /tasks to monitor progress
+- Only request Phase 3 subagent after sufficient data collected
+- Only request Phase 4 subagent after Phase 3 completes
 - If timeout, proceed with partial data (graceful degradation)
 
 The user just sees: /chaos-test → comprehensive report
-The agents are how we make it fast and efficient internally.
+Claude delegates to subagents to make it fast and efficient internally.
 ```
 
 ### 3. Prepare the Environment
@@ -195,7 +188,7 @@ Compare the new report to the previous one:
 
 From your perspective: You ran `/chaos-test` and got a detailed report with fixes.
 
-Internally: The skill used four agents with a mix of parallel and sequential execution. But that's an implementation detail that made the skill faster and more efficient.
+Internally: The skill instructed Claude to delegate to subagents with a mix of parallel and sequential execution. But that's an implementation detail that made the skill faster and more efficient.
 
 **Why this design works:**
 - Chaos injection and load generation are independent → run in parallel
@@ -204,14 +197,16 @@ Internally: The skill used four agents with a mix of parallel and sequential exe
 - Each phase gets fresh, focused context
 - Can use cheaper models for focused tasks
 
-## Understanding Agent Coordination
+## Understanding Subagent Coordination
 
-### Parallel Execution (Agents 1 & 2)
+### Parallel Execution (Subagents 1 & 2)
 
 **Key pattern:**
-```python
-# Both agents must be called in ONE message
-Task(chaos_injector) + Task(load_generator)
+Ask Claude to spawn both subagents in the same request:
+```
+In parallel:
+1. Spawn a subagent to inject chaos...
+2. Spawn a subagent to generate load...
 ```
 
 **Why parallel?**
@@ -221,32 +216,27 @@ Task(chaos_injector) + Task(load_generator)
 - Results don't depend on each other
 - 2x faster than sequential
 
-### Sequential Execution (Agents 3 & 4)
+### Sequential Execution (Subagents 3 & 4)
 
 **Key pattern:**
-```python
-# Wait for Agent 2 data
-wait_for_file("load-results.json")
+Request subagents one at a time based on data availability:
+```
+Wait for load-results.json, then:
+→ Request analysis subagent
 
-# Then spawn Agent 3
-Task(pattern_analyzer)
-
-# Wait for Agent 3 results
-wait_for_file("failure-patterns.json")
-
-# Then spawn Agent 4
-Task(fix_proposer)
+Wait for failure-patterns.json, then:
+→ Request fix proposal subagent
 ```
 
 **Why sequential?**
-- Agent 3 needs load data from Agent 2
-- Agent 4 needs analysis from Agent 3
+- Analysis subagent needs load data
+- Fix proposal subagent needs analysis
 - Natural dependencies in workflow
 - Order matters for correctness
 
-### Data Passing Between Agents
+### Data Passing Between Subagents
 
-Agents communicate through **structured JSON files**:
+Subagents communicate through **structured JSON files**:
 - `chaos-config.json` - What failures were injected
 - `load-results.json` - API call results
 - `failure-patterns.json` - Analysis of failures
@@ -254,7 +244,7 @@ Agents communicate through **structured JSON files**:
 
 **Why JSON?**
 - Clear, parseable structure
-- Easy for agents to read and write
+- Easy for subagents to read and write
 - Schema enforces consistency
 - Machine-readable for other tools
 
@@ -264,20 +254,20 @@ Agents communicate through **structured JSON files**:
 - [ ] Report identifies real failure patterns
 - [ ] Fix proposals are specific and actionable
 - [ ] Re-running after fixes shows improvement
-- [ ] Understand why Agents 1 & 2 run in parallel
-- [ ] Understand why Agents 3 & 4 run sequentially
+- [ ] Understand why subagents 1 & 2 run in parallel
+- [ ] Understand why subagents 3 & 4 run sequentially
 
 ## Troubleshooting
 
-**Agents run one at a time instead of parallel:**
-- Ensure both Task calls are in the SAME message in the prompt
-- Both must specify `run_in_background: true`
-- Check: "Agents 1 & 2 must spawn in ONE message"
+**Subagents run one at a time instead of parallel:**
+- Ask Claude to spawn both in the same request: "In parallel, spawn..."
+- Request background execution explicitly
+- Check that the skill prompts for parallel execution in the instructions
 
 **Background tasks never finish:**
 - Add timeout check (60 seconds max)
 - Proceed with partial data if needed
-- Check TaskOutput polling frequency
+- Use /tasks to monitor progress
 
 **Not enough data collected:**
 - Increase request count in load generator (try 100-200 requests)
@@ -294,9 +284,9 @@ Agents communicate through **structured JSON files**:
 - Reduce failure injection rate
 - Add graceful error handling first
 
-## Deep Dive: Why Use Agents?
+## Deep Dive: Why Use Subagents?
 
-### Option 1: Do Everything Directly (No Agents)
+### Option 1: Do Everything Directly (No Subagents)
 
 ```text
 1. Inject chaos
@@ -312,21 +302,21 @@ Agents communicate through **structured JSON files**:
 - Single point of failure
 - Expensive to run (one large context)
 
-### Option 2: Use Agents (Current Approach)
+### Option 2: Use Subagents (Current Approach)
 
 ```text
-1. Agent 1 (inject) || Agent 2 (load) [PARALLEL]
+1. Subagent 1 (inject) || Subagent 2 (load) [PARALLEL]
 2. Wait for data
-3. Agent 3 (analyze) [SEQUENTIAL]
-4. Agent 4 (propose fixes) [SEQUENTIAL]
+3. Subagent 3 (analyze) [SEQUENTIAL]
+4. Subagent 4 (propose fixes) [SEQUENTIAL]
 5. Main skill: aggregate report
 ```
 
 **Benefits:**
-- Each agent has focused context
+- Each subagent has focused context
 - Parallel execution where possible (2x faster)
 - Can use cheaper models for focused tasks
-- Isolated failures (one agent fails, others proceed)
+- Isolated failures (one subagent fails, others proceed)
 - Easier to debug (check each phase independently)
 
 ## Stage 2 Summary
@@ -335,13 +325,13 @@ You built `/chaos-test` - a powerful resilience testing skill that:
 - Identifies system weaknesses under failure conditions
 - Analyzes patterns in failures
 - Proposes concrete, prioritized fixes
-- Demonstrates both parallel and sequential agent coordination
+- Demonstrates both parallel and sequential subagent coordination
 
 ### Key Insights
 
-**Skills vs. Agents:**
+**Skills vs. Subagents:**
 - Users invoke skills (`/chaos-test`)
-- Skills may use agents internally (implementation detail)
+- Skills instruct Claude to delegate to subagents (implementation detail)
 - Focus on what the skill does, not how it does it
 
 **When parallel execution helps:**
@@ -365,8 +355,8 @@ You built `/chaos-test` - a powerful resilience testing skill that:
 1. What does `/chaos-test` do for users?
 2. Why do chaos injection and load generation run in parallel?
 3. Why does pattern analysis wait for load generation?
-4. How do agents communicate (pass data)?
-5. When is it worth using agents in a skill vs. doing work directly?
+4. How do subagents communicate (pass data)?
+5. When is it worth delegating to subagents in a skill vs. doing work directly?
 6. What's "graceful degradation" and why does it matter?
 
 ### Advanced Exercises (Optional)
@@ -375,7 +365,7 @@ You built `/chaos-test` - a powerful resilience testing skill that:
 Add more failure types (database timeouts, memory pressure, network issues).
 
 **Real-Time Monitoring:**
-Add a monitoring agent that watches logs in real-time and alerts on anomalies.
+Add instructions for a monitoring subagent that watches logs in real-time and alerts on anomalies.
 
 **Gradual Ramp:**
 Gradually increase failure rates (5% → 10% → 20%) and track when the system breaks.
