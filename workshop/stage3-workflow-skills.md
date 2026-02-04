@@ -1,6 +1,6 @@
-# Stage 4: Workflow Automation
+# Stage 3: Daily Workflow Skills
 
-**Time:** 60 minutes
+**Time:** 120 minutes
 **Goal:** Build practical skills for common engineering workflows
 
 ## Learning Objectives
@@ -291,7 +291,7 @@ One sentence: what problem does this solve?
 - [ ] Output saves >10 minutes vs. manual process
 - [ ] Skill is documented with usage examples
 
-## Stage 4 Summary
+## Stage 3 Summary
 
 You have now:
 - Built a practical workflow skill
@@ -309,4 +309,4 @@ You have now:
 
 ---
 
-**Next:** [Stage 5: MCP Server Development](./stage5-mcp-servers.md)
+**Next:** [Showcase: Share What You Built](./showcase.md)

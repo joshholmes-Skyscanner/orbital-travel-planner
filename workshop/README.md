@@ -1,22 +1,21 @@
 # Advanced Claude Code Workshop
 
-Build reusable skills, validation harnesses, and agent coordination patterns for daily use.
+Build reusable skills and agent coordination patterns for daily use.
 
 ## Workshop Details
 
 - **Duration:** 5.5 hours (10:30–16:00, lunch 12:00–13:00)
 - **Target Audience:** Backend Python engineers familiar with Claude and LLM basics
-- **Core Topics:** Custom skills, agent orchestration, self-validation loops, MCP servers
+- **Core Topics:** Custom skills, agent orchestration, MCP tooling, and practical daily workflow automation
 
 ## Learning Outcomes
 
 By the end of this workshop, you will:
 
-- Create 6+ custom Claude Code skills for validation, testing, and workflow automation
-- Build self-validating skills that automatically fix their own errors
-- Develop custom MCP servers extending Claude's capabilities
+- Create custom Claude Code skills for workflow automation and agent orchestration
 - Understand when skills benefit from using agents internally (for clean context and efficiency)
-- Apply these patterns to your daily engineering work
+- Build practical, reusable skills for common engineering tasks
+- Apply agent coordination patterns to your daily engineering work
 
 ## Prerequisites
 
@@ -30,33 +29,25 @@ Ensure you have the following installed:
 
 ## Workshop Structure
 
-### Morning Session (10:30–12:00)
+### Morning Session (10:30–13:00)
 
-**[Stage 1: Foundations](./stage1-foundations.md)** — 30 minutes
+**[Stage 1: Foundations & Setup](./stage1-foundations.md)** — 30 minutes (10:30–11:00)
 
 Core building blocks: skills, agents, and MCP servers.
 
-**[Stage 2: Self-Validating Skills](./stage2-meta-programming.md)** — 60 minutes
+**[Stage 2: Chaos Engineering & Agent Orchestration](./stage2-orchestration.md)** — 120 minutes (11:00–13:00)
 
-Build skills that validate their work and fix errors automatically.
+Build a chaos testing skill with parallel and sequential agent coordination.
 
 ### Afternoon Session (13:00–16:00)
 
-**[Stage 3: Resilience Testing Skills](./stage3-orchestration.md)** — 60 minutes
+**[Stage 3: Daily Workflow Skills](./stage3-workflow-skills.md)** — 120 minutes (13:00–15:00)
 
-Build a chaos engineering skill that finds and fixes system weaknesses.
+Build practical, reusable skills for common engineering tasks (sprint retros, PR analysis, code audits).
 
-**[Stage 4: Workflow Automation](./stage4-workflow-skills.md)** — 60 minutes
+**[Showcase: Share What You Built](./showcase.md)** — 60 minutes (15:00–16:00)
 
-Practical skills for sprint retros, PR analysis, and code audits.
-
-**[Stage 5: MCP Server Development](./stage5-mcp-servers.md)** — 45 minutes
-
-Custom MCP servers with domain-specific tools.
-
-**[Stage 6: Integration](./stage6-integration.md)** — 15 minutes
-
-Skill composition and team distribution planning.
+Demo your skills and share learnings with the group.
 
 ## Self-Paced Learning
 
@@ -74,7 +65,7 @@ These guides are designed for independent completion if you cannot attend the li
 
 1. Review the prerequisites above
 2. Clone the orbital-travel-planner repository
-3. Start with [Stage 1: Foundations](./stage1-foundations.md)
+3. Start with [Stage 1: Foundations & Setup](./stage1-foundations.md)
 4. Progress through stages sequentially
 5. Complete success criteria before advancing
 
@@ -82,7 +73,7 @@ These guides are designed for independent completion if you cannot attend the li
 
 The orbital-travel-planner serves as a learning vehicle. The real goal is building reusable patterns you'll apply to production codebases.
 
-Focus on understanding the underlying patterns rather than memorizing specific implementations.
+Focus on understanding the underlying patterns rather than memorizing specific implementations. The workshop emphasizes practical skills you can use immediately in your daily work.
 
 ## Support
 
@@ -99,23 +90,17 @@ After the workshop:
 ## What You'll Build
 
 ### Custom Skills
-- API validation and testing automation
 - Chaos engineering and resilience testing
-- Workflow automation (retros, PR analysis, onboarding)
-- Comprehensive audit orchestration
-
-### MCP Servers
-- HTTP endpoint validation
-- Test data generation
-- API version comparison
-- Security scanning
+- Workflow automation (retros, PR analysis, onboarding, tech debt audits)
+- Complex multi-agent orchestration with parallel and sequential execution
 
 ### Key Patterns
-- Self-validating skills
+- Parallel vs. sequential agent coordination
 - Using agents for efficiency (clean context, cheaper models)
-- Parallel vs. sequential task execution
-- MCP servers for external capabilities
+- Data passing between agents via structured files
+- Skills that coordinate multiple specialized agents
+- Practical automation for daily engineering workflows
 
 ---
 
-**Ready to begin?** [Start with Stage 1: Foundations](./stage1-foundations.md)
+**Ready to begin?** [Start with Stage 1: Foundations & Setup](./stage1-foundations.md)
