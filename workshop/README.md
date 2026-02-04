@@ -29,23 +29,28 @@ Ensure you have the following installed:
 
 ## Workshop Structure
 
-### Morning Session (10:30–13:00)
+### Morning Session (10:30–12:00)
 
 **[Stage 1: Foundations & Setup](./stage1-foundations.md)** — 30 minutes (10:30–11:00)
 
 Core building blocks: skills, agents, and MCP servers.
 
-**[Stage 2: Chaos Engineering & Agent Orchestration](./stage2-orchestration.md)** — 120 minutes (11:00–13:00)
+**[Stage 2: Chaos Engineering & Agent Orchestration](./stage2-orchestration.md)** — 60 minutes (11:00–12:00)
 
 Build a chaos testing skill with parallel and sequential agent coordination.
 
 ### Afternoon Session (13:00–16:00)
 
-**[Stage 3: Daily Workflow Skills](./stage3-workflow-skills.md)** — 120 minutes (13:00–15:00)
+**[Stage 2: CONT](./stage2-orchestration.md)** — 60 minutes (13:00–14:00)
+
+Build a chaos testing skill with parallel and sequential agent coordination.
+
+
+**[Stage 3: Daily Workflow Skills](./stage3-workflow-skills.md)** — 90 minutes (14:00–15:30)
 
 Build practical, reusable skills for common engineering tasks (sprint retros, PR analysis, code audits).
 
-**[Showcase: Share What You Built](./showcase.md)** — 60 minutes (15:00–16:00)
+**[Showcase: Share What You Built](./showcase.md)** — 30 minutes (15:30–16:00)
 
 Demo your skills and share learnings with the group.
 

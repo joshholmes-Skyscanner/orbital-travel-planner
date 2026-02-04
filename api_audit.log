@@ -12,3 +12,9 @@
 2026-01-29 14:32:16,896 [INFO] app.middleware: REQUEST BODY e9eef8ed-9411-49d8-a27f-d0e6a7c21f27: {"origin":"LON","destination":"NYC","depart_after":"2026-02-01T08:00:00Z","arrive_before":"2026-02-02T08:00:00Z","max_layovers":2,"optimize_for":"cheapest"}
 2026-01-29 14:32:16,920 [INFO] httpx: HTTP Request: POST http://localhost:8765/tools/routes.get "HTTP/1.1 200 OK"
 2026-01-29 14:32:16,921 [INFO] app.middleware: RESPONSE e9eef8ed-9411-49d8-a27f-d0e6a7c21f27: 200 [25ms]
+2026-02-04 11:27:00,336 [INFO] app.middleware: REQUEST ac22a856-0274-441a-9f44-33a582d9c104: GET / from 127.0.0.1
+2026-02-04 11:27:00,354 [INFO] app.middleware: RESPONSE ac22a856-0274-441a-9f44-33a582d9c104: 200 [17ms]
+2026-02-04 11:27:00,363 [INFO] app.middleware: REQUEST 53d80042-392c-4d15-adc6-7d700b18f34e: GET /static/styles.css from 127.0.0.1
+2026-02-04 11:27:00,363 [INFO] app.middleware: REQUEST d0923275-5f3a-41c5-8bfb-17839f684fe6: GET /static/app.js from 127.0.0.1
+2026-02-04 11:27:00,364 [INFO] app.middleware: RESPONSE d0923275-5f3a-41c5-8bfb-17839f684fe6: 304 [1ms]
+2026-02-04 11:27:00,365 [INFO] app.middleware: RESPONSE 53d80042-392c-4d15-adc6-7d700b18f34e: 304 [2ms]
